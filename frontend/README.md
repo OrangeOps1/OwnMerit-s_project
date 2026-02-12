@@ -14,4 +14,4 @@ npm run dev
 
 ## Environment
 
-- `VITE_API_BASE_URL` points to FastAPI backend
+- `NEXT_PUBLIC_API_BASE_URL` points to FastAPI backend

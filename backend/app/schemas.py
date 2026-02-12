@@ -16,6 +16,14 @@ class ActivityCreate(BaseModel):
     recurrence_text: str | None = None
 
 
+class ActivityUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+    activity_type: ActivityType | None = None
+    assigned_to_user_id: str | None = None
+    recurrence_text: str | None = None
+
+
 class SubmissionCreate(BaseModel):
     activity_id: str
     user_id: str
