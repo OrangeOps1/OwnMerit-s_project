@@ -1,1 +1,1 @@
-# External service adapters live here.
+"""Service layer for providers, decisions, and storage."""

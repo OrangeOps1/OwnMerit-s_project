@@ -1,1 +1,1 @@
-# Own Merits backend package
+"""FastAPI app package for proof-checking backend."""
