@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ============================================================
+   OwnMerit - Calm & Trustworthy Theme
+   Trauma-informed, accessibility-first design
+   ============================================================ */
+
+@theme inline {
+  --color-background: #F7F8FA;
+  --color-foreground: #2C3E50;
+  --color-surface: #FFFFFF;
+  
+  /* Primary - Muted Teal Blue */
+  --color-primary: #4A7C8F;
+  --color-primary-light: #E8F0F3;
+  --color-primary-dark: #365B6A;
+  
+  /* Secondary - Soft Green */
+  --color-secondary: #6B9E76;
+  --color-secondary-light: #E8F3EA;
+  
+  /* Accent - Warm Gold (rewards) */
+  --color-accent: #D4A853;
+  --color-accent-light: #FDF5E3;
+  
+  /* Text */
+  --color-text-primary: #2C3E50;
+  --color-text-secondary: #6B7C8D;
+  --color-text-muted: #95A5B6;
+  
+  /* Borders */
+  --color-border: #E2E8F0;
+  --color-border-focus: #4A7C8F;
+  
+  /* Status */
+  --color-success: #6B9E76;
+  --color-success-light: #E8F3EA;
+  --color-warning: #D4A853;
+  --color-warning-light: #FDF5E3;
+  --color-danger: #C75C5C;
+  --color-danger-light: #FDE8E8;
+  
+  /* Traffic Light */
+  --color-traffic-green: #70B080;
+  --color-traffic-amber: #E0B060;
+  --color-traffic-red: #E07070;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #F7F8FA;
+  --foreground: #2C3E50;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Focus Styles (Accessibility) ---- */
+*:focus-visible {
+  outline: 3px solid #4A7C8F;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Skip to main content link ---- */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 12px 24px;
+  background: #4A7C8F;
+  color: white;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ---- Smooth transitions ---- */
+.page-transition {
+  animation: fadeSlideIn 0.3s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Pulse animation for reminders ---- */
+@keyframes gentlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.pulse-gentle {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+/* ---- Success checkmark animation ---- */
+@keyframes checkmarkDraw {
+  from {
+    stroke-dashoffset: 50;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.checkmark-animate {
+  stroke-dasharray: 50;
+  animation: checkmarkDraw 0.5s ease-out forwards;
+}
+
+/* ---- Scale in animation ---- */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* ---- Large touch targets (48px min) ---- */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+}
