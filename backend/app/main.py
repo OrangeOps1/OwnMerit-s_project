@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import admin_reviews, proofs
+from app.routes import admin_reviews, ai, proofs
 
 
 def create_app() -> FastAPI:
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
 
     app.include_router(proofs.router)
     app.include_router(admin_reviews.router)
+    app.include_router(ai.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:

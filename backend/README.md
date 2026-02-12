@@ -14,3 +14,5 @@
 - `POST /api/proofs/upload` (`multipart/form-data`: `image`, `task_context`, optional `note`)
 - `GET /api/admin/reviews`
 - `GET /api/admin/reviews/{submission_id}`
+- `POST /api/ai/reminders/generate`
+- `POST /api/ai/recurrence/parse`
