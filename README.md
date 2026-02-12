@@ -1,32 +1,36 @@
-# Own Merits Hackathon Project
+# Own Merits Project
 
-Hackathon starter monorepo for an incentives-first support platform for Own Merits.
+Incentive-first support platform for Own Merits.  
+The system helps users complete life-improving activities, submit proof, track progress, and receive rewards/vouchers.
 
-## What this repo contains
+## Tech Stack
 
-- `backend/` - FastAPI service with MongoDB integration and starter endpoints
-- `frontend/` - React app placeholder and setup notes
-- `docs/` - architecture and API contract docs for team alignment
+- Frontend: Next.js (React + TypeScript)
+- Backend: FastAPI (Python)
+- Database: MongoDB (Atlas or local)
+- AI: MiniMax service layer (stub-ready)
 
-## Quick start
+## Repository Structure
 
-### 1) Clone the repo
+- `backend/` - FastAPI app, routers, auth/session logic, Mongo integration
+- `frontend/` - Next.js app (user + admin UI)
+- `docs/` - architecture, API contract, team workflow docs
+
+## Prerequisites
+
+- Python 3.11+ (3.14 works in this repo)
+- Node.js 18+
+- npm
+- MongoDB Atlas URI (recommended for hackathon)
+
+## 1) Clone
 
 ```bash
 git clone <your-repo-url>
-cd "<repo-folder>"
+cd "Hackaton project"
 ```
 
-### 2) Configure MongoDB
-
-Use either:
-
-- Local MongoDB service running on your machine, or
-- MongoDB Atlas connection string
-
-Then set `MONGODB_URL` in `backend/.env`.
-
-### 3) Start backend
+## 2) Backend Setup
 
 ```bash
 cd backend
@@ -34,45 +38,94 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
-uvicorn app.main:app --reload
 ```
 
-API will be available at:
+Update `backend/.env` at minimum:
 
-- `http://127.0.0.1:8000`
-- Swagger docs: `http://127.0.0.1:8000/docs`
+- `MONGODB_URL=<your mongodb uri>`
+- `MONGODB_DB_NAME=ownmerits`
 
-### 4) Start frontend
+Optional:
 
-Frontend is currently a scaffold placeholder.
-If you already have your React app, place it under `frontend/` and follow `frontend/README.md`.
+- `AUTO_SEED_DATA=true` to seed demo users/data
+- `CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000`
 
-## Hackathon MVP scope
+Start backend:
 
-1. User completes assigned/voluntary activity with text + image proof
-2. Admin approves submission
-3. Voucher assignment trigger (stub service ready)
-4. Progress tracking endpoint + UI chart
-5. AI reminder endpoint via MiniMax (client stub ready)
+```bash
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-## Team split suggestion
+Backend URLs:
 
-- Dev A: backend data models + activity/submission endpoints
-- Dev B: admin approval + voucher integration
-- Dev C: frontend dashboards + upload + chart
-- Dev D: AI reminder + recurrence endpoint + polish
+- API root: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
+- Health: `http://127.0.0.1:8000/health`
 
-## Environment files
+## 3) Frontend Setup
 
-- Backend env template: `backend/.env.example`
-- Frontend env template: `frontend/.env.example`
+```bash
+cd frontend
+npm install
+copy .env.example .env
+```
 
-## Team docs
+Ensure `frontend/.env` contains:
 
-- Collaboration workflow: `docs/TEAM_COLLABORATION.md`
-- Cursor shared prompt: `docs/CURSOR_TEAM_PROMPT.md`
+- `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api`
 
-## Notes
+Start frontend:
 
-- This scaffold is intentionally minimal and hackathon-friendly.
-- External integrations (MiniMax, Google Calendar, eVoucher) are prepared as service layers so they can be replaced or mocked quickly.
+```bash
+npm run dev
+```
+
+Frontend URLs:
+
+- App: `http://localhost:3000`
+- Login: `http://localhost:3000/login`
+- Admin: `http://localhost:3000/admin`
+
+## Demo Accounts
+
+- Admin: `admin@ownmerits.org` / `Password123!`
+- User: `user@ownmerits.org` / `Password123!`
+- Voucher-ready user: `voucher@ownmerits.org` / `Password123!`
+
+## What is implemented
+
+- Auth: register/login/logout/me with bearer sessions
+- Role-based access: admin-only endpoints and admin UI
+- Activity management: CRUD in admin UI + user activity feed
+- Proof submissions: text + image URL flow
+- Admin review: approve/reject submissions
+- Progress: user progress endpoint and frontend progress view
+- Rewards: user voucher/reward retrieval + QR voucher screen
+
+## API Documentation
+
+See:
+
+- `docs/API_CONTRACT.md`
+- Swagger at `http://127.0.0.1:8000/docs`
+
+## Team Docs
+
+- `docs/ARCHITECTURE.md`
+- `docs/TEAM_COLLABORATION.md`
+- `docs/CURSOR_TEAM_PROMPT.md`
+
+## Troubleshooting
+
+- **Mongo timeout on Atlas**
+  - Check Atlas Network Access (allow your current IP)
+  - Check DB user credentials and URI
+  - Some WiFi networks block MongoDB port `27017`; mobile hotspot often fixes this fast
+
+- **Frontend can’t reach backend**
+  - Confirm backend is running on port `8000`
+  - Confirm `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env`
+  - Restart frontend after env changes
+
+- **Old dev server process/port conflicts**
+  - Stop running processes and restart both backend + frontend
