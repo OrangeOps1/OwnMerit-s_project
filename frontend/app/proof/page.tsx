@@ -5,30 +5,135 @@
 // View all tasks and upload proof
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BottomNavigation, TopBar } from "@/components/ui/Navigation";
 import { ProofUploader } from "@/components/proof/ProofUploader";
-import { MOCK_TASKS } from "@/lib/mockData";
 import type { Task } from "@/lib/types";
-import { CheckCircle2, Clock, ListFilter } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { getApiBaseUrl, getAuthHeader } from "@/lib/auth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+
+interface ActivityRow {
+  id: string;
+  title: string;
+  description: string;
+  activity_type: "assigned" | "voluntary";
+}
+
+interface SubmissionRow {
+  id: string;
+  activity_id: string;
+  status: "pending" | "approved" | "rejected";
+  proof_image_url?: string | null;
+}
 
 export default function ProofPage() {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const { auth, checking } = useRequireAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
 
-  const handleComplete = (taskId: string, proofUrl: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              status: "completed" as const,
-              proofUrl,
-              completedAt: new Date().toISOString(),
-            }
-          : t
-      )
-    );
+  const apiBase = getApiBaseUrl();
+
+  const loadTasks = useMemo(
+    () => async () => {
+      if (!auth) {
+        return;
+      }
+      setLoading(true);
+      setError("");
+      try {
+        const [activitiesResponse, submissionsResponse] = await Promise.all([
+          fetch(`${apiBase}/activities`, {
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeader(),
+            },
+          }),
+          fetch(`${apiBase}/submissions`, {
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeader(),
+            },
+          }),
+        ]);
+
+        if (!activitiesResponse.ok || !submissionsResponse.ok) {
+          throw new Error("Unable to load activities");
+        }
+
+        const activitiesData = (await activitiesResponse.json()) as {
+          items: ActivityRow[];
+        };
+        const submissionsData = (await submissionsResponse.json()) as {
+          items: SubmissionRow[];
+        };
+
+        const latestByActivity = new Map<string, SubmissionRow>();
+        for (const submission of submissionsData.items) {
+          if (!latestByActivity.has(submission.activity_id)) {
+            latestByActivity.set(submission.activity_id, submission);
+          }
+        }
+
+        const mapped: Task[] = activitiesData.items.map((activity) => {
+          const submission = latestByActivity.get(activity.id);
+          return {
+            id: activity.id,
+            title: activity.title,
+            description: activity.description || "Complete this activity",
+            category: "chore",
+            status: submission?.status === "approved" ? "completed" : "pending",
+            meritPoints: 10,
+            dueDate: new Date().toISOString().slice(0, 10),
+            requiresProof: true,
+            proofUrl: submission?.proof_image_url || undefined,
+          };
+        });
+        setTasks(mapped);
+      } catch (requestError) {
+        const message =
+          requestError instanceof Error ? requestError.message : "Unknown error";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [apiBase, auth]
+  );
+
+  useEffect(() => {
+    if (checking) {
+      return;
+    }
+    void loadTasks();
+  }, [checking, loadTasks]);
+
+  const handleComplete = async (taskId: string, proofUrl: string) => {
+    try {
+      const response = await fetch(`${apiBase}/submissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify({
+          activity_id: taskId,
+          proof_text: "Submitted from proof screen",
+          proof_image_url: proofUrl || null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to submit proof");
+      }
+      await loadTasks();
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error ? requestError.message : "Unknown error";
+      setError(message);
+    }
   };
 
   const filteredTasks = tasks.filter((t) => {
@@ -40,11 +145,33 @@ export default function ProofPage() {
   const completedCount = tasks.filter((t) => t.status === "completed").length;
   const pendingCount = tasks.filter((t) => t.status === "pending").length;
 
+  if (checking || !auth) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="max-w-lg mx-auto">
+          <Card>
+            <p className="text-text-secondary">Checking session...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <TopBar title="Today's Tasks" />
 
       <div className="max-w-lg mx-auto px-4 py-4">
+        {loading && (
+          <Card className="mb-4">
+            <p className="text-text-secondary">Loading activities...</p>
+          </Card>
+        )}
+        {error && (
+          <Card className="mb-4 border-red-200 bg-red-50">
+            <p className="text-sm text-red-700">{error}</p>
+          </Card>
+        )}
         {/* Summary */}
         <div className="flex items-center gap-4 mb-4 text-sm">
           <span className="flex items-center gap-1.5 text-success font-semibold">

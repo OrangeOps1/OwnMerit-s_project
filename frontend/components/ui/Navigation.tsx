@@ -1,25 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   Home,
   ClipboardCheck,
   TrendingUp,
   Gift,
   Settings,
+  LogOut,
 } from "lucide-react";
+import { clearAuthState, getAuthState } from "@/lib/auth";
 
-const navItems = [
+const baseNavItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/proof", label: "Tasks", icon: ClipboardCheck },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/voucher", label: "Rewards", icon: Gift },
-  { href: "/admin", label: "Staff", icon: Settings },
 ];
 
 export function BottomNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const auth = useMemo(() => (hydrated ? getAuthState() : null), [hydrated]);
+  const isAdmin = auth?.user?.role === "admin";
+  const navItems = useMemo(
+    () =>
+      isAdmin
+        ? [...baseNavItems, { href: "/admin", label: "Staff", icon: Settings }]
+        : baseNavItems,
+    [isAdmin]
+  );
+
+  const handleLogout = () => {
+    clearAuthState();
+    router.push("/login");
+  };
 
   return (
     <nav
@@ -68,6 +90,18 @@ export function BottomNavigation() {
             </li>
           );
         })}
+        {auth && (
+          <li>
+            <button
+              onClick={handleLogout}
+              className="flex flex-col items-center justify-center py-3 px-4 min-h-[64px] min-w-[64px] transition-colors duration-200 touch-target text-text-muted hover:text-danger"
+              aria-label="Log out"
+            >
+              <LogOut size={24} strokeWidth={2} aria-hidden="true" />
+              <span className="text-xs mt-1 font-medium">Logout</span>
+            </button>
+          </li>
+        )}
       </ul>
     </nav>
   );
