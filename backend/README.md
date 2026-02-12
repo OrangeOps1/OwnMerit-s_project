@@ -16,3 +16,10 @@
 - `GET /api/admin/reviews/{submission_id}`
 - `POST /api/ai/reminders/generate`
 - `POST /api/ai/recurrence/parse`
+
+## Smoke test script
+
+- Run all implemented endpoint checks with:
+  - `bash backend/scripts/smoke_test_endpoints.sh`
+- If API is already running, skip booting uvicorn in script:
+  - `bash backend/scripts/smoke_test_endpoints.sh --no-start`
