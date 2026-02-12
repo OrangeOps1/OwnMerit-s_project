@@ -4,24 +4,111 @@
 // OwnMerit - QR Voucher Page
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomNavigation, TopBar } from "@/components/ui/Navigation";
 import { QRVoucher } from "@/components/voucher/QRVoucher";
 import { Card } from "@/components/ui/Card";
 import { MOCK_VOUCHERS, MOCK_MERIT_PROGRESS } from "@/lib/mockData";
 import type { Voucher } from "@/lib/types";
-import { Gift, History, ChevronRight } from "lucide-react";
+import { Gift, History } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { getApiBaseUrl, getAuthHeader } from "@/lib/auth";
 
 export default function VoucherPage() {
   const [currentPoints] = useState(MOCK_MERIT_PROGRESS.currentPoints);
-
-  // Show active voucher or most recent
-  const activeVoucher =
-    MOCK_VOUCHERS.find((v) => v.status === "available") || null;
-
-  const pastVouchers = MOCK_VOUCHERS.filter(
-    (v) => v.status !== "available"
+  const { auth, checking } = useRequireAuth();
+  const [points, setPoints] = useState(currentPoints);
+  const [activeVoucher, setActiveVoucher] = useState<Voucher | null>(
+    MOCK_VOUCHERS.find((v) => v.status === "available") || null
   );
+  const [pastVouchers, setPastVouchers] = useState<Voucher[]>(
+    MOCK_VOUCHERS.filter((v) => v.status !== "available")
+  );
+
+  useEffect(() => {
+    if (checking) {
+      return;
+    }
+    const load = async () => {
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/progress/me`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+        });
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as {
+          approved_submissions: number;
+          pending_submissions: number;
+        };
+        setPoints(data.approved_submissions * 10 + data.pending_submissions * 2);
+
+        const rewardsResponse = await fetch(`${getApiBaseUrl()}/rewards/me`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+        });
+        if (rewardsResponse.ok) {
+          const rewardsData = (await rewardsResponse.json()) as {
+            items: Array<{
+              reward_id: string;
+              voucher_code: string;
+              status: string;
+              assigned_at: string;
+              expires_at?: string;
+              value?: number;
+              currency?: string;
+              retailer?: string;
+            }>;
+          };
+
+          const mapped = rewardsData.items.map<Voucher>((reward) => {
+            const status =
+              reward.status === "assigned"
+                ? "available"
+                : reward.status === "redeemed"
+                ? "redeemed"
+                : "expired";
+            return {
+              id: reward.reward_id,
+              code: reward.voucher_code,
+              value: reward.value ?? 10,
+              currency: reward.currency ?? "GBP",
+              expiresAt:
+                reward.expires_at ||
+                new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+              status,
+              retailer: reward.retailer ?? "Tesco",
+            };
+          });
+
+          const available = mapped.find((voucher) => voucher.status === "available") || null;
+          const past = mapped.filter((voucher) => voucher.status !== "available");
+          setActiveVoucher(available);
+          setPastVouchers(past);
+        }
+      } catch {
+        // Keep mock points fallback.
+      }
+    };
+    void load();
+  }, [checking]);
+
+  if (checking || !auth) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="max-w-lg mx-auto">
+          <Card>
+            <p className="text-text-secondary">Checking session...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -31,7 +118,7 @@ export default function VoucherPage() {
         {/* Active voucher / locked state */}
         <QRVoucher
           voucher={activeVoucher}
-          currentPoints={currentPoints}
+          currentPoints={points}
         />
 
         {/* Past vouchers */}

@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from app.schemas import ActivityCreate, ActivityUpdate, SubmissionReview
+from app.schemas import ActivityCreate, ActivityUpdate, SubmissionReview, UserCreate
+from app.security import hash_password, require_admin
 from app.services.voucher_service import assign_voucher
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
 
 @router.get("/dashboard")
@@ -48,6 +49,53 @@ def admin_list_rewards(request: Request) -> dict:
     return {"items": items}
 
 
+@router.get("/users")
+def admin_list_users(request: Request) -> dict:
+    db = request.app.state.db
+    users = list(
+        db.users.find(
+            {},
+            {
+                "_id": 0,
+                "id": 1,
+                "name": 1,
+                "email": 1,
+                "role": 1,
+                "group": 1,
+                "created_at": 1,
+            },
+        ).sort("created_at", -1)
+    )
+    return {"items": users}
+
+
+@router.post("/users")
+def admin_create_user(payload: UserCreate, request: Request) -> dict:
+    db = request.app.state.db
+    normalized_email = payload.email.strip().lower()
+    if db.users.find_one({"email": normalized_email}):
+        raise HTTPException(status_code=409, detail="Email already exists")
+
+    item = {
+        "id": str(uuid4()),
+        "name": payload.name.strip(),
+        "email": normalized_email,
+        "password_hash": hash_password(payload.password),
+        "role": payload.role,
+        "group": payload.group,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    db.users.insert_one(item)
+    return {
+        "id": item["id"],
+        "name": item["name"],
+        "email": item["email"],
+        "role": item["role"],
+        "group": item["group"],
+        "created_at": item["created_at"],
+    }
+
+
 @router.get("/activities")
 def admin_list_activities(request: Request) -> dict:
     db = request.app.state.db
@@ -64,11 +112,12 @@ def admin_create_activity(payload: ActivityCreate, request: Request) -> dict:
         "title": payload.title,
         "description": payload.description,
         "activity_type": payload.activity_type,
-        "assigned_to_user_id": payload.assigned_to_user_id,
+        "assigned_to_user_id": payload.assigned_to_user_id or None,
         "recurrence_text": payload.recurrence_text,
         "created_at": now_iso,
     }
     db.activities.insert_one(item)
+    item.pop("_id", None)
     return item
 
 

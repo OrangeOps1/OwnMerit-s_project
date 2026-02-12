@@ -1,12 +1,31 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
 from app.schemas import ProgressResponse
+from app.security import get_current_user
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 
 
+@router.get("/me")
+def get_my_progress(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    return _build_progress_for_user(current_user["id"], request)
+
+
 @router.get("/{user_id}")
-def get_user_progress(user_id: str, request: Request) -> dict:
+def get_user_progress(
+    user_id: str,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    if current_user["role"] != "admin":
+        user_id = current_user["id"]
+    return _build_progress_for_user(user_id, request)
+
+
+def _build_progress_for_user(user_id: str, request: Request) -> dict:
     db = request.app.state.db
     total = db.submissions.count_documents({"user_id": user_id})
     approved = db.submissions.count_documents({"user_id": user_id, "status": "approved"})

@@ -5,6 +5,7 @@
 // Shows greeting, merit points, upcoming reminders as actionable cards
 // ============================================================
 
+import { useEffect, useMemo, useState } from "react";
 import { BottomNavigation } from "@/components/ui/Navigation";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -13,6 +14,8 @@ import { useReminders } from "@/hooks/useReminders";
 import { useMeritPoints } from "@/hooks/useMeritPoints";
 import { MOCK_REMINDERS, MOCK_MERIT_PROGRESS, MOCK_TASKS } from "@/lib/mockData";
 import { MERIT_CONFIG } from "@/lib/constants";
+import { getApiBaseUrl, getAuthHeader, getAuthState } from "@/lib/auth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Link from "next/link";
 import {
   Star,
@@ -32,6 +35,14 @@ function getGreeting(): string {
 }
 
 export default function HomePage() {
+  const { auth, checking } = useRequireAuth();
+  const [pendingTasksCount, setPendingTasksCount] = useState(
+    MOCK_TASKS.filter((t) => t.status === "pending").length
+  );
+  const displayName = useMemo(() => {
+    const auth = getAuthState();
+    return auth?.user?.name?.split(" ")[0] || "User";
+  }, []);
   const {
     reminders,
     dismissReminder,
@@ -49,9 +60,48 @@ export default function HomePage() {
 
   const pendingTasks = MOCK_TASKS.filter((t) => t.status === "pending");
 
+  useEffect(() => {
+    if (checking) {
+      return;
+    }
+    const load = async () => {
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/submissions`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+        });
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as {
+          items: Array<{ status: "pending" | "approved" | "rejected" }>;
+        };
+        const pending = data.items.filter((item) => item.status === "pending").length;
+        setPendingTasksCount(pending);
+      } catch {
+        // Keep mock fallback values when API is unavailable.
+      }
+    };
+    void load();
+  }, [checking]);
+
   const handleReminderAction = (id: string) => {
     dismissReminder(id);
   };
+
+  if (checking || !auth) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="max-w-lg mx-auto">
+          <Card>
+            <p className="text-text-secondary">Checking session...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -62,7 +112,7 @@ export default function HomePage() {
             <Sun size={20} className="text-accent" />
             <span className="text-sm opacity-80">{getGreeting()}</span>
           </div>
-          <h1 className="text-2xl font-bold">James</h1>
+          <h1 className="text-2xl font-bold">{displayName}</h1>
 
           {/* Merit Points Quick View */}
           <div className="mt-4 bg-white/10 rounded-2xl p-4">
@@ -120,7 +170,7 @@ export default function HomePage() {
                 className="text-primary mx-auto mb-1"
               />
               <p className="text-xs font-bold text-text-primary">
-                {pendingTasks.length} Tasks
+                {pendingTasksCount} Tasks
               </p>
               <p className="text-[10px] text-text-muted">Today</p>
             </Card>

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     auto_seed_data: bool = True
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    session_expiry_hours: int = 24
 
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db_name: str = "ownmerits"

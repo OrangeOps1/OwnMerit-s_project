@@ -8,9 +8,11 @@ from app.database import create_client, get_db
 from app.routers.activities import router as activities_router
 from app.routers.admin import router as admin_router
 from app.routers.ai import router as ai_router
+from app.routers.auth import router as auth_router
 from app.routers.calendar import router as calendar_router
 from app.routers.health import router as health_router
 from app.routers.progress import router as progress_router
+from app.routers.rewards import router as rewards_router
 from app.routers.submissions import router as submissions_router
 from app.seed_data import seed_if_needed
 
@@ -37,9 +39,11 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(activities_router, prefix=settings.api_prefix)
 app.include_router(submissions_router, prefix=settings.api_prefix)
 app.include_router(admin_router, prefix=settings.api_prefix)
 app.include_router(ai_router, prefix=settings.api_prefix)
 app.include_router(progress_router, prefix=settings.api_prefix)
+app.include_router(rewards_router, prefix=settings.api_prefix)
 app.include_router(calendar_router, prefix=settings.api_prefix)
